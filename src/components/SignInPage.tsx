@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   UserCheck
 } from 'lucide-react';
+import { authenticateUser, isValidEmail, DEMO_USER } from '../utils/authStorage';
 
 interface SignInPageProps {
   onSuccess: (user: { name: string; email: string; role: string }) => void;
@@ -32,17 +33,17 @@ export const SignInPage: React.FC<SignInPageProps> = ({
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotEmailSent, setForgotEmailSent] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
 
     // Form validation
     if (!email.trim()) {
-      setErrorMessage('Please enter your work email address.');
+      setErrorMessage('Please enter your email.');
       return;
     }
-    if (!email.includes('@') || !email.includes('.')) {
-      setErrorMessage('Please enter a valid work email address (e.g. analyst@industrial-grid.com).');
+    if (!isValidEmail(email)) {
+      setErrorMessage('Please enter a valid email address.');
       return;
     }
     if (!password) {
@@ -51,37 +52,39 @@ export const SignInPage: React.FC<SignInPageProps> = ({
     }
 
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      // Derive display name from email or default to SecOps Lead
-      const namePart = email.split('@')[0].replace(/[._-]/g, ' ');
-      const formattedName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
-      onSuccess({
-        name: formattedName || 'J. Martinez',
-        email: email,
-        role: 'OT Security Lead'
-      });
-    }, 600);
+    const result = await authenticateUser(email, password);
+    setIsLoading(false);
+
+    if (!result.success || !result.user) {
+      setErrorMessage(result.error || 'Incorrect email or password.');
+      return;
+    }
+
+    onSuccess(result.user);
   };
 
-  const handleDemoSignIn = () => {
-    setEmail('j.martinez@houston-refinery.local');
-    setPassword('••••••••••••');
+  const handleDemoSignIn = async () => {
+    setEmail(DEMO_USER.email);
+    setPassword(DEMO_USER.password);
+    setErrorMessage(null);
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      onSuccess({
-        name: 'J. Martinez',
-        email: 'j.martinez@houston-refinery.local',
-        role: 'SecOps Tier 3 (OT Lead)'
-      });
-    }, 400);
+    const result = await authenticateUser(DEMO_USER.email, DEMO_USER.password);
+    setIsLoading(false);
+    if (result.success && result.user) {
+      onSuccess(result.user);
+    } else {
+      setErrorMessage(result.error || 'Failed to authenticate demo user.');
+    }
   };
 
   const handleForgotPasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !email.includes('@')) {
-      setErrorMessage('Please enter your registered work email above first.');
+    if (!email.trim()) {
+      setErrorMessage('Please enter your email.');
+      return;
+    }
+    if (!isValidEmail(email)) {
+      setErrorMessage('Please enter a valid email address.');
       return;
     }
     setForgotEmailSent(true);

@@ -13,6 +13,7 @@ import {
   AlertCircle,
   ArrowRight
 } from 'lucide-react';
+import { registerNewUser, isValidEmail } from '../utils/authStorage';
 
 interface SignUpPageProps {
   onSuccess: (user: { name: string; email: string; role: string }) => void;
@@ -35,7 +36,7 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
 
@@ -44,32 +45,48 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({
       setErrorMessage('Please enter your full name.');
       return;
     }
-    if (!email.trim() || !email.includes('@') || !email.includes('.')) {
-      setErrorMessage('Please enter a valid work email address.');
+    if (!email.trim()) {
+      setErrorMessage('Please enter your email.');
+      return;
+    }
+    if (!isValidEmail(email)) {
+      setErrorMessage('Please enter a valid email address.');
       return;
     }
     if (!organization.trim()) {
       setErrorMessage('Please specify your organization or plant facility.');
       return;
     }
-    if (password.length < 6) {
-      setErrorMessage('Password must be at least 6 characters long.');
+    if (!password) {
+      setErrorMessage('Please enter your password.');
+      return;
+    }
+    if (password.length < 8) {
+      setErrorMessage('Password must be at least 8 characters.');
       return;
     }
     if (password !== confirmPassword) {
-      setErrorMessage('Passwords do not match. Please verify and re-type.');
+      setErrorMessage('Passwords do not match.');
       return;
     }
 
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      onSuccess({
-        name: fullName.trim(),
-        email: email.trim(),
-        role: role
-      });
-    }, 600);
+    const result = await registerNewUser({
+      fullName,
+      email,
+      role,
+      organization,
+      password,
+      confirmPassword,
+    });
+    setIsLoading(false);
+
+    if (!result.success || !result.user) {
+      setErrorMessage(result.error || 'Failed to create account.');
+      return;
+    }
+
+    onSuccess(result.user);
   };
 
   return (
@@ -205,7 +222,7 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={e => setPassword(e.target.value)}
-                    placeholder="Min. 6 characters"
+                    placeholder="Min. 8 characters"
                     required
                     className="w-full pl-9 pr-8 py-2 rounded-lg bg-[#0b0f17] border border-[#23314d] text-slate-200 placeholder-slate-500 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 text-xs"
                   />
