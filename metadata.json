@@ -1,0 +1,6 @@
+{
+  "name": "OT Security Platform",
+  "description": "Interactive enterprise Operational Technology (OT) and industrial cybersecurity platform prototype featuring Purdue model hierarchy, interactive attack path investigation, asset inventory, OT protocol telemetry, and sensor health monitoring.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
